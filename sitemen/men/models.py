@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.db import models
 from django.urls import reverse
@@ -36,6 +37,7 @@ class Men(models.Model):
     cat = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='posts', verbose_name="Категории")
     tags = models.ManyToManyField('TagPost', blank=True, related_name='tags', verbose_name="Теги")
     wife = models.OneToOneField('Wife', on_delete=models.SET_NULL, null=True, blank=True, related_name='man', verbose_name="Жена")
+    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, related_name='posts', null=True, default=None)
 
     objects = models.Manager()
     published = PublishedManager()

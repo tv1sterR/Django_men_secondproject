@@ -1,3 +1,6 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpResponseRedirect, HttpResponsePermanentRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.context_processors import request
@@ -21,16 +24,16 @@ class MenHome(DataMixin, ListView):
     def get_queryset(self):
         return Men.published.all().select_related('cat')
 
+@login_required
 def about(request):
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            fp = UploadFiles(file=form.cleaned_data['file'])
-            fp.save()
-    else:
-        form = UploadFileForm()
+    contact_list = Men.published.all()
+    paginator = Paginator(contact_list, 3)
+
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'men/about.html',
-                  {'title': 'О сайте', 'form': form})
+                  {'title': 'О сайте', 'page_obj': page_obj})
 
 class ShowPost(DataMixin, DetailView):
     template_name = 'men/post.html'
@@ -45,11 +48,16 @@ class ShowPost(DataMixin, DetailView):
         return get_object_or_404(Men.published, slug=self.kwargs[self.slug_url_kwarg])
 
 
-class AddPage(DataMixin, CreateView):
+class AddPage(LoginRequiredMixin, DataMixin, CreateView):
     form_class = AddPostForm
     template_name = 'men/addpage.html'
     # success_url = reverse_lazy('home')
     title_page = "Добавление статьи"
+
+    def form_valid(self, form):
+        m = form.save(commit=False)
+        m.author = self.request.user
+        return super().form_valid(form)
 
 
 class UpdatePage(DataMixin, UpdateView):
@@ -59,8 +67,8 @@ class UpdatePage(DataMixin, UpdateView):
     success_url = reverse_lazy('home')
     title_page = "Редактирование статьи"
 
-def contact(request):
-    return HttpResponse("Обратная связь")
+# def contact(request):
+#     return HttpResponse("Обратная связь")
 
 def login(request):
     return HttpResponse("Авторизация")
